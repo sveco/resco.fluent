@@ -1,33 +1,90 @@
 declare global {
-    interface Window { resco: any; }
+    interface Window { resco: FormHandler; }
 }
 
 window.resco = window.resco || {};
-var resco = window.resco || {};
 
-resco.forms = (function(forms) {
 
-    var requireRules: RequireRule[] = [];
+enum LogLevel {
+    Information = 1,
+    Warning = 2,
+    Error = 3
+}
 
-    return forms;
-}(resco.forms || {}));
+class Logger {
+    log(msg: string, logLevel: LogLevel) {
+        if (window.console) {
+            switch (logLevel) {
+                case 1:
+                    window.console.info(msg);
+                    break;
+                case 2:
+                    window.console.warn(msg);
+                    break;
+                case 3:
+                    window.console.error(msg);
+                    break;
+                default:
+                    window.console.log(msg);
+                    break;
+            }
+        }
+    }
+}
 
-class RuleBase {
-    rule: {};
+export class FormHandler {
+    rules: any[];
+    logger: Logger = new Logger();
+
+    constructor() {
+        this.rules = [];
+    }
+
+    requireRule (formContext: MobileCRM.UI.EntityForm) {
+        var rule = new RequireRule(formContext);
+        this.rules.push(rule);
+        return rule;
+    }
+
+    displayRule (formContext: MobileCRM.UI.EntityForm) {
+        var rule = new DisplayRule(formContext);
+        this.rules.push(rule);
+        return rule;
+    }
+
+    enableRule (formContext: MobileCRM.UI.EntityForm) {
+        var rule = new EnableRule(formContext);
+        this.rules.push(rule);
+        return rule;
+    }
+
+    validateRule (formContext: MobileCRM.UI.EntityForm) {
+        var rule = new ValidateRule(formContext);
+        this.rules.push(rule);
+        return rule;
+    }
+}
+var resco = new FormHandler();
+export default resco;
+
+abstract class RuleBase {
     fieldName: string;
     fields: string[];
     values: any[];
     triggers: string[];
-    formContext: MobileCRM.UI.Form;
+    formContext: MobileCRM.UI.EntityForm;
     func: Function | undefined;
+    isonload: boolean;
+    logger: Logger;
 
-    constructor(formContext: MobileCRM.UI.Form) {
-        this.rule = {};
+    constructor(formContext: MobileCRM.UI.EntityForm) {
         this.fieldName = "";
         this.fields = [];
         this.values = [];
         this.triggers = [];
         this.formContext = formContext;
+        this.isonload = false;
+        this.logger = new Logger();
     }
     for(fieldName: string) {
         this.fieldName = fieldName;
@@ -41,7 +98,7 @@ class RuleBase {
         this.triggers = triggers;
         return this;
     }
-    returns (func: Function) {
+    returns(func: Function) {
         /// <summary>
         /// A function that returns the result of the <func/>.
         /// </summary>
@@ -50,36 +107,6 @@ class RuleBase {
         this.func = func;
         return this;
       };
-}
-
-export class RequireRule extends RuleBase{
-    apply() {
-        MobileCRM.UI.EntityForm.onChange(
-            (entityForm) => {
-                // First check whether the change handler is called due to desired item change
-                this.triggers.forEach(field => {
-                    var context = entityForm.context as MobileCRM.UI.IFormChangeContext;
-                    if(field == context.changedItem)
-                    {
-                        var detailView = entityForm.getDetailView("General");
-                        var item = detailView.getItemByName(this.fieldName);
-                        if(this.func && item)
-                        {
-                            if(this.func.apply(null, this.extractValues(entityForm)))
-                            {
-                                item.validate = true;
-                            } else {
-                                item.validate = false;
-                            }
-                        }
-                    }
-                });
-                return true;
-            },
-            true,
-            null
-        );
-    }
 
     extractValues (entityForm: MobileCRM.UI.EntityForm): any[] {
         var result:any[] = [];
@@ -91,5 +118,154 @@ export class RequireRule extends RuleBase{
             }
         });
         return result;
+    }
+
+    onload(): this {
+        this.run(this.formContext, false);
+        return this;
+    }
+
+    onchange() {
+        MobileCRM.UI.EntityForm.onChange(
+            (entityForm) => {
+                // First check whether the change handler is called due to desired item change
+                this.run(entityForm, true);
+                return true;
+            },
+            true,
+            null
+        );
+        return this;
+    }
+
+    abstract run (formContext: MobileCRM.UI.EntityForm, isonchange: boolean): any;
+}
+
+export class RequireRule extends RuleBase{
+    run(formContext: MobileCRM.UI.EntityForm, isonchange: boolean) {
+        this.triggers.forEach(field => {
+            if(formContext) {
+                if(isonchange == true)
+                {
+                    var context = formContext.context as MobileCRM.UI.IFormChangeContext;
+                    if(field == context.changedItem)
+                    {
+                        this.logic(formContext);
+                    }
+                } else {
+                    this.logic (formContext);
+                }
+            }
+        });
+    }
+
+    private logic (formContext: MobileCRM.UI.EntityForm) {
+        var detailView = formContext.getDetailView("General");
+        var item = detailView.getItemByName(this.fieldName);
+        if(this.func && item)
+        {
+            if(this.func.apply(null, this.extractValues(formContext)))
+            {
+                item.validate = true;
+            } else {
+                item.validate = false;
+            }
+        }
+    }
+}
+
+export class DisplayRule extends RuleBase{
+    run(formContext: MobileCRM.UI.EntityForm, isonchange: boolean) {
+        this.triggers.forEach(field => {
+            if(formContext) {
+                if(isonchange == true)
+                {
+                    var context = formContext.context as MobileCRM.UI.IFormChangeContext;
+                    if(field == context.changedItem)
+                    {
+                        this.logic(formContext);
+                    }
+                } else {
+                    this.logic (formContext);
+                }
+            }
+        });
+    }
+
+    private logic (formContext: MobileCRM.UI.EntityForm) {
+        var detailView = formContext.getDetailView("General");
+        var item = detailView.getItemByName(this.fieldName);
+        if(this.func && item)
+        {
+            if(this.func.apply(null, this.extractValues(formContext)))
+            {
+                item.isVisible = true;
+            } else {
+                item.isVisible = false;
+            }
+        }
+    }
+}
+
+export class EnableRule extends RuleBase{
+    run(formContext: MobileCRM.UI.EntityForm, isonchange: boolean) {
+        this.triggers.forEach(field => {
+            if(formContext) {
+                if(isonchange == true)
+                {
+                    var context = formContext.context as MobileCRM.UI.IFormChangeContext;
+                    if(field == context.changedItem)
+                    {
+                        this.logic(formContext);
+                    }
+                } else {
+                    this.logic (formContext);
+                }
+            }
+        });
+    }
+
+    private logic (formContext: MobileCRM.UI.EntityForm) {
+        var detailView = formContext.getDetailView("General");
+        var item = detailView.getItemByName(this.fieldName);
+        if(this.func && item)
+        {
+            if(this.func.apply(null, this.extractValues(formContext)))
+            {
+                item.isEnabled = true;
+            } else {
+                item.isEnabled = false;
+            }
+        }
+    }
+}
+
+export class ValidateRule extends RuleBase {
+    message!: string;
+
+    withMessage(str:string) {
+        this.message = str;
+        return this;
+    }
+
+    run(formContext: MobileCRM.UI.EntityForm, isonchange: boolean) {
+        if(this.message == "" || this.message == null) {
+            this.logger.log("Message not defined in ValidateRule!", LogLevel.Error)
+            return;
+        }
+
+        var detailView = formContext.getDetailView("General");
+        var item = detailView.getItemByName(this.fieldName);
+        if(this.func && item)
+        {
+            if(this.func.apply(null, this.extractValues(formContext)))
+            {
+                item.errorMessage = "";
+                this.logger.log(`Field ${this.fieldName} is valid.`, LogLevel.Information);
+            } else {
+                item.errorMessage = this.message;
+                this.logger.log(`Field ${this.fieldName} is invalid.`, LogLevel.Warning);
+            }
+        }
     }
 }
