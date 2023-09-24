@@ -1,24 +1,25 @@
 import "jsbridge"
 import  resco  from "../js/resco.fluent"
+import "account.entity"
 
 var formContext: MobileCRM.UI.EntityForm;
 
 export function initialize () {
-    enum AccountCategoryCode {
-        None = -1,
-        PreferredCustomer = 1,
-        Standard = 2
-    }
-
     MobileCRM.UI.EntityForm.requestObject((c) => {
         formContext = c;
         initializeDisplayRules();
-        initializeRequireRules();
         initalizeValidateRules();
+        initializeRequireRules();
         return true;
     }, (e) => {
         if(e) { MobileCRM.bridge.alert (e)}
     }, null);
+
+    var validateEmail = (email: string) => {
+        return email.match(
+          /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+        );
+      };
 
     var initalizeValidateRules = (function () {
         resco.validateRule(formContext)
@@ -27,34 +28,44 @@ export function initialize () {
             .triggeredBy(['emailaddress1'])
             .needs(['emailaddress1'])
             .returns((email:string) => {
-                return (email.indexOf('@') != -1)
+                return (email == undefined || validateEmail(email));
             })
-            .onchange();
+            .onchange()
+            .onload();
     });
 
     var initializeRequireRules = (function () {
 
         resco.requireRule(formContext)
-            .for('industrycode')
-            .triggeredBy(['accountcategorycode'])
-            .needs(['accountcategorycode'])
-            .returns((code: any) => {
-                return code == AccountCategoryCode.Standard;
+            .for('emailaddress1')
+            .triggeredBy(['emailaddress1','telephone1'])
+            .needs(['telephone1'])
+            .returns((phone: any) => {
+                return phone == undefined;
             })
-            .onload()
-            .onchange();
-        
+            .onchange()
+            .onload();
+
+        resco.requireRule(formContext)
+            .for('telephone1')
+            .triggeredBy(['emailaddress1','telephone1'])
+            .needs(['emailaddress1'])
+            .returns((email: any) => {
+                return email == undefined;
+            })
+            .onchange()
+            .onload(); 
     });
 
     var initializeDisplayRules = (function () {
         resco.displayRule(formContext)
-            .for('industrycode')
-            .triggeredBy(['accountcategorycode'])
-            .needs(['accountcategorycode'])
+            .for(Account.Fields.IndustryCode)
+            .triggeredBy([Account.Fields.AccountCategoryCode])
+            .needs([Account.Fields.AccountCategoryCode])
             .returns((code: any) => {
-                return code == AccountCategoryCode.Standard;
+                return code == Account.AccountCategoryCode.Standard;
             })
-            .onload()
-            .onchange();
+            .onchange()
+            .onload();
     });
 }

@@ -128,7 +128,6 @@ abstract class RuleBase {
     onchange() {
         MobileCRM.UI.EntityForm.onChange(
             (entityForm) => {
-                // First check whether the change handler is called due to desired item change
                 this.run(entityForm, true);
                 return true;
             },
