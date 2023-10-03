@@ -8,7 +8,7 @@
     "clean": "rm -rf ./dist",
     "create-dir": "make-dir ./dist/lib",
     "copy-files": "copyfiles ./lib/*.* ./dist/ && copyfiles -f ./src/*.html ./dist/",
-    "to_appdata": "copyfiles -f ./dist/js/*.* ../../../AppData/Roaming/RESCO_NEXT/WWW/js/"
+    "copy_for_debug": "copyfiles -f ./dist/js/*.* ../../../AppData/Roaming/RESCO_NEXT/WWW/js/"
   },
   "keywords": [],
   "author": "",

@@ -14,8 +14,14 @@ function getParameterByName(name: string, url: string | undefined): string {
 
 export function initialize() {
 	var moduleName = getParameterByName('handler', undefined);
+	var baseName = moduleName.replace('.','');
 	requirejs([moduleName], function(module:any) {
-		module.initialize();
+		document.title = moduleName;
+		if(module[baseName]
+			&& module[baseName].prototype
+			&& module[baseName].prototype.initialize) {
+				module[baseName].prototype.initialize();
+			};
 	});
 	return {
 		initialize: initialize

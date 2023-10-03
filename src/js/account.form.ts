@@ -1,71 +1,67 @@
 import "jsbridge"
+import { formBase } from "./form.base";
 import  resco  from "../js/resco.fluent"
 import "account.entity"
 
-var formContext: MobileCRM.UI.EntityForm;
+export class accountform extends formBase {
 
-export function initialize () {
-    MobileCRM.UI.EntityForm.requestObject((c) => {
-        formContext = c;
-        initializeDisplayRules();
-        initalizeValidateRules();
-        initializeRequireRules();
-        return true;
-    }, (e) => {
-        if(e) { MobileCRM.bridge.alert (e)}
-    }, null);
+    public initialize(): void {
+        this.initializeBase();
+        this.initializeDisplayRules();
+        this.initalizeValidateRules();
+        this.initializeRequireRules();
+    }
 
-    var validateEmail = (email: string) => {
-        return email.match(
-          /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-        );
-      };
+    initializeDisplayRules(): void {
+        resco.displayRule(this.formContext)
+        .for(Account.Fields.IndustryCode)
+        .triggeredBy([Account.Fields.AccountCategoryCode])
+        .needs([Account.Fields.AccountCategoryCode])
+        .returns((code: any) => {
+            return code == Account.AccountCategoryCode.Standard;
+        })
+        .onchange()
+        .onload();
+    }
 
-    var initalizeValidateRules = (function () {
-        resco.validateRule(formContext)
-            .for('emailaddress1')
-            .withMessage('Email is not valid!')
-            .triggeredBy(['emailaddress1'])
-            .needs(['emailaddress1'])
-            .returns((email:string) => {
-                return (email == undefined || validateEmail(email));
-            })
-            .onchange()
-            .onload();
-    });
+    initalizeValidateRules(): void {
+        var validateEmail = (email: string) => {
+            return email.match(
+              /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+            );
+          };
 
-    var initializeRequireRules = (function () {
+        resco.validateRule(this.formContext)
+        .for('emailaddress1')
+        .withMessage('Email is not valid!')
+        .triggeredBy(['emailaddress1'])
+        .needs(['emailaddress1'])
+        .returns((email:string) => {
+            return (email == undefined || validateEmail(email));
+        })
+        .onchange()
+        .onload();
+    }
 
-        resco.requireRule(formContext)
-            .for('emailaddress1')
-            .triggeredBy(['emailaddress1','telephone1'])
-            .needs(['telephone1'])
-            .returns((phone: any) => {
-                return phone == undefined;
-            })
-            .onchange()
-            .onload();
+    initializeRequireRules(): void {
+        resco.requireRule(this.formContext)
+        .for('emailaddress1')
+        .triggeredBy(['emailaddress1','telephone1'])
+        .needs(['telephone1'])
+        .returns((phone: any) => {
+            return phone == undefined;
+        })
+        .onchange()
+        .onload();
 
-        resco.requireRule(formContext)
-            .for('telephone1')
-            .triggeredBy(['emailaddress1','telephone1'])
-            .needs(['emailaddress1'])
-            .returns((email: any) => {
-                return email == undefined;
-            })
-            .onchange()
-            .onload(); 
-    });
-
-    var initializeDisplayRules = (function () {
-        resco.displayRule(formContext)
-            .for(Account.Fields.IndustryCode)
-            .triggeredBy([Account.Fields.AccountCategoryCode])
-            .needs([Account.Fields.AccountCategoryCode])
-            .returns((code: any) => {
-                return code == Account.AccountCategoryCode.Standard;
-            })
-            .onchange()
-            .onload();
-    });
+    resco.requireRule(this.formContext)
+        .for('telephone1')
+        .triggeredBy(['emailaddress1','telephone1'])
+        .needs(['emailaddress1'])
+        .returns((email: any) => {
+            return email == undefined;
+        })
+        .onchange()
+        .onload(); 
+    }
 }
