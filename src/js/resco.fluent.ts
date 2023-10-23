@@ -121,7 +121,18 @@ abstract class RuleBase {
     }
 
     onload(): this {
-        this.run(this.formContext, false);
+
+        MobileCRM.UI.EntityForm.requestObject(
+            (entityForm) => {
+                this.run(entityForm, false);
+                return true;
+            },
+            (err) => {
+                MobileCRM.bridge.alert("An error occurred: " + err);
+            },
+            null
+        );
+
         return this;
     }
 
@@ -159,15 +170,17 @@ export class RequireRule extends RuleBase{
     }
 
     private logic (formContext: MobileCRM.UI.EntityForm) {
-        var detailView = formContext.getDetailView("General");
-        var item = detailView.getItemByName(this.fieldName);
-        if(this.func && item)
-        {
-            if(this.func.apply(null, this.extractValues(formContext)))
+        if(formContext) {
+            var detailView = formContext.getDetailView("General");
+            var item = detailView.getItemByName(this.fieldName);
+            if(this.func && item)
             {
-                item.validate = true;
-            } else {
-                item.validate = false;
+                if(this.func.apply(null, this.extractValues(formContext)))
+                {
+                    item.validate = true;
+                } else {
+                    item.validate = false;
+                }
             }
         }
     }
@@ -192,15 +205,17 @@ export class DisplayRule extends RuleBase{
     }
 
     private logic (formContext: MobileCRM.UI.EntityForm) {
-        var detailView = formContext.getDetailView("General");
-        var item = detailView.getItemByName(this.fieldName);
-        if(this.func && item)
-        {
-            if(this.func.apply(null, this.extractValues(formContext)))
+        if(formContext) {
+            var detailView = formContext.getDetailView("General");
+            var item = detailView.getItemByName(this.fieldName);
+            if(this.func && item)
             {
-                item.isVisible = true;
-            } else {
-                item.isVisible = false;
+                if(this.func.apply(null, this.extractValues(formContext)))
+                {
+                    item.isVisible = true;
+                } else {
+                    item.isVisible = false;
+                }
             }
         }
     }
@@ -225,15 +240,17 @@ export class EnableRule extends RuleBase{
     }
 
     private logic (formContext: MobileCRM.UI.EntityForm) {
-        var detailView = formContext.getDetailView("General");
-        var item = detailView.getItemByName(this.fieldName);
-        if(this.func && item)
-        {
-            if(this.func.apply(null, this.extractValues(formContext)))
+        if(formContext) {
+            var detailView = formContext.getDetailView("General");
+            var item = detailView.getItemByName(this.fieldName);
+            if(this.func && item)
             {
-                item.isEnabled = true;
-            } else {
-                item.isEnabled = false;
+                if(this.func.apply(null, this.extractValues(formContext)))
+                {
+                    item.isEnabled = true;
+                } else {
+                    item.isEnabled = false;
+                }
             }
         }
     }
@@ -252,18 +269,19 @@ export class ValidateRule extends RuleBase {
             this.logger.log("Message not defined in ValidateRule!", LogLevel.Error)
             return;
         }
-
-        var detailView = formContext.getDetailView("General");
-        var item = detailView.getItemByName(this.fieldName);
-        if(this.func && item)
-        {
-            if(this.func.apply(null, this.extractValues(formContext)))
+        if(formContext) {
+            var detailView = formContext.getDetailView("General");
+            var item = detailView.getItemByName(this.fieldName);
+            if(this.func && item)
             {
-                item.errorMessage = "";
-                this.logger.log(`Field ${this.fieldName} is valid.`, LogLevel.Information);
-            } else {
-                item.errorMessage = this.message;
-                this.logger.log(`Field ${this.fieldName} is invalid.`, LogLevel.Warning);
+                if(this.func.apply(null, this.extractValues(formContext)))
+                {
+                    item.errorMessage = "";
+                    this.logger.log(`Field ${this.fieldName} is valid.`, LogLevel.Information);
+                } else {
+                    item.errorMessage = this.message;
+                    this.logger.log(`Field ${this.fieldName} is invalid.`, LogLevel.Warning);
+                }
             }
         }
     }
